@@ -1,0 +1,6 @@
+[package]
+name = "bilibili-lv6-hardcore"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
