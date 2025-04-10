@@ -1,12 +1,12 @@
-use std::i32;
-
 use image::GrayImage;
-use imageproc::contours::{Contour, find_contours};
-use num_traits::{AsPrimitive, Num, Zero};
+use imageproc::{
+    contours::{Contour, find_contours},
+    rect::Rect,
+};
 
 pub(crate) struct Location {
-    pub(crate) core: Rect<i32>,
-    pub(crate) check_boxes: Vec<Rect<i32>>,
+    pub(crate) core: Rect,
+    pub(crate) check_boxes: Vec<Rect>,
 }
 
 impl Location {
@@ -20,7 +20,7 @@ impl Location {
                 return false;
             }
             let rect = bounding_rect(x);
-            if rect.width < (gray.width() / 2) as i32 {
+            if rect.width() < gray.width() / 2 {
                 return false;
             }
             true
@@ -33,8 +33,8 @@ impl Location {
 
         let core = location_core(
             &contours_vec,
-            (rects[1].y + rects[1].height) as usize,
-            rects[1].height as usize,
+            (rects[0].top() as u32 + rects[0].height()) as usize,
+            rects[0].height() as usize,
             gray.width() as usize,
             gray.height() as usize,
         );
@@ -52,7 +52,7 @@ fn location_core(
     box_h: usize,
     img_w: usize,
     img_h: usize,
-) -> Rect<i32> {
+) -> Rect {
     let mut point_count = vec![0; img_h];
     for contour in contours {
         for point in &contour.points {
@@ -97,10 +97,10 @@ fn location_core(
         top_y += ALIGIN / 2;
     }
 
-    Rect::new(0, top_y as i32, img_w as i32, h as i32)
+    Rect::at(0, top_y as i32).of_size(img_w as u32, h as u32)
 }
 
-fn nms<T: RectItem>(rects: &[Rect<T>]) -> Vec<Rect<T>> {
+fn nms(rects: &[Rect]) -> Vec<Rect> {
     let mut res = vec![];
     for src in rects {
         let mut suppression = false;
@@ -121,7 +121,7 @@ fn nms<T: RectItem>(rects: &[Rect<T>]) -> Vec<Rect<T>> {
     res
 }
 
-fn bounding_rect(contour: &Contour<i32>) -> Rect<i32> {
+fn bounding_rect(contour: &Contour<i32>) -> Rect {
     let mut min_x = i32::MAX;
     let mut min_y = i32::MAX;
     let mut max_x = i32::MIN;
@@ -142,50 +142,30 @@ fn bounding_rect(contour: &Contour<i32>) -> Rect<i32> {
         }
     }
 
-    Rect::new(min_x, min_y, max_x + 1 - min_x, max_y + 1 - min_y)
+    Rect::at(min_x, min_y).of_size((max_x + 1 - min_x) as u32, (max_y + 1 - min_y) as u32)
 }
 
-pub(crate) trait RectItem: Num + Zero + Copy + AsPrimitive<f32> + Ord {}
-impl<T: Num + Zero + Copy + AsPrimitive<f32> + Ord> RectItem for T {}
-#[derive(Clone, Debug)]
-pub(crate) struct Rect<T: RectItem> {
-    x: T,
-    y: T,
-    width: T,
-    height: T,
+pub(crate) trait RectExtra {
+    fn area(&self) -> u64;
+    fn iou(&self, other: &Self) -> f32;
 }
 
-impl<T: RectItem> Rect<T> {
-    fn new(x: T, y: T, width: T, height: T) -> Self {
-        Rect {
-            x,
-            y,
-            width,
-            height,
-        }
-    }
-
-    fn area(&self) -> T {
-        self.width * self.height
+impl RectExtra for Rect {
+    fn area(&self) -> u64 {
+        self.width() as u64 * self.height() as u64
     }
 
     fn iou(&self, other: &Self) -> f32 {
-        let x1 = self.x.max(other.x);
-        let y1 = self.y.max(other.y);
-        let x2 = (self.x + self.width).min(other.x + other.width);
-        let y2 = (self.y + self.height).min(other.y + other.height);
-        if x1 < x2 && y1 < y2 {
-            let inter_area = (x2 - x1) * (y2 - y1);
-            let union_area = self.area() + other.area() - inter_area;
-            return inter_area.as_() / union_area.as_();
-        } else {
+        let x1 = self.left().max(other.left());
+        let y1 = self.top().max(other.top());
+        let x2 = self.right().min(other.right());
+        let y2 = self.bottom().min(other.bottom());
+        if x1 > x2 || y1 > y2 {
             0.0
+        } else {
+            let inter_area = (x2 - x1 + 1) * (y2 - y1 + 1);
+            let union_area = self.area() + other.area() - inter_area as u64;
+            (inter_area as f64 / union_area as f64) as f32
         }
-    }
-}
-
-impl Into<imageproc::rect::Rect> for Rect<i32> {
-    fn into(self) -> imageproc::rect::Rect {
-        imageproc::rect::Rect::at(self.x, self.y).of_size(self.width as u32, self.height as u32)
     }
 }

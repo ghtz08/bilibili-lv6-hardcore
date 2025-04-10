@@ -126,7 +126,6 @@ dependencies = [
  "image",
  "imageproc",
  "log",
- "num-traits",
 ]
 
 [[package]]
