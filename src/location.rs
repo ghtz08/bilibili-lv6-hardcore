@@ -1,19 +1,21 @@
+use std::i32;
+
 use image::GrayImage;
 use imageproc::contours::{Contour, find_contours};
 use num_traits::{AsPrimitive, Num, Zero};
 
 pub(crate) struct Location {
-    // all: Rect<i32>,
+    pub(crate) core: Rect<i32>,
     pub(crate) check_boxes: Vec<Rect<i32>>,
 }
 
 impl Location {
     pub(crate) fn new(gray: &GrayImage) -> Self {
         let edges = imageproc::edges::canny(&gray, 50.0, 150.0);
-        let contours = find_contours::<i32>(&edges);
-        println!("contours: {}", contours.len());
+        let contours_vec = find_contours::<i32>(&edges);
+        log::debug!("contours: {}", contours_vec.len());
 
-        let contours = contours.iter().filter(|x| {
+        let contours = contours_vec.iter().filter(|x| {
             if x.points.len() < gray.width() as usize {
                 return false;
             }
@@ -25,12 +27,77 @@ impl Location {
         });
 
         let rects: Vec<_> = contours.map(|x| bounding_rect(x)).collect();
-        println!("rects: {}", rects.len());
+        log::debug!("rects: {}", rects.len());
         let rects = nms(&rects);
-        println!("nms: {}", rects.len());
+        log::debug!("nms: {}", rects.len());
 
-        Location { check_boxes: rects }
+        let core = location_core(
+            &contours_vec,
+            (rects[1].y + rects[1].height) as usize,
+            rects[1].height as usize,
+            gray.width() as usize,
+            gray.height() as usize,
+        );
+
+        Location {
+            core,
+            check_boxes: rects,
+        }
     }
+}
+
+fn location_core(
+    contours: &[Contour<i32>],
+    center: usize,
+    box_h: usize,
+    img_w: usize,
+    img_h: usize,
+) -> Rect<i32> {
+    let mut point_count = vec![0; img_h];
+    for contour in contours {
+        for point in &contour.points {
+            point_count[point.y as usize] += 1;
+        }
+    }
+
+    let mut top_y = 0;
+    let mut begin = center;
+    const THRESHOLD: i32 = 42;
+    for i in (0..center).rev() {
+        if point_count[i] < THRESHOLD {
+            continue;
+        }
+        if begin - i > box_h + 1 {
+            let off = box_h / 4 * 3;
+            top_y = begin.max(off) - off;
+            break;
+        }
+        begin = i;
+    }
+    let mut bottom_y = img_h;
+    let mut begin = center;
+    for i in center..img_h {
+        if point_count[i] < THRESHOLD {
+            continue;
+        }
+        if i - begin > box_h + 1 {
+            bottom_y = (begin + box_h / 2).min(img_h);
+            break;
+        }
+        begin = i;
+    }
+    const ALIGIN: usize = 28;
+    let h = bottom_y - top_y;
+    assert!(h > ALIGIN, "height: {}", h);
+    let h = h / ALIGIN * ALIGIN;
+    let mut top_y = top_y + (ALIGIN - 1) / ALIGIN * ALIGIN;
+    let bottom_y = bottom_y + (ALIGIN - 1) / ALIGIN * ALIGIN;
+
+    if bottom_y - top_y > h {
+        top_y += ALIGIN / 2;
+    }
+
+    Rect::new(0, top_y as i32, img_w as i32, h as i32)
 }
 
 fn nms<T: RectItem>(rects: &[Rect<T>]) -> Vec<Rect<T>> {
