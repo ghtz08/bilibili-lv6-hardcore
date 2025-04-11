@@ -1,6 +1,7 @@
 use image::GrayImage;
 use imageproc::{
     contours::{Contour, find_contours},
+    point::Point,
     rect::Rect,
 };
 
@@ -148,6 +149,8 @@ fn bounding_rect(contour: &Contour<i32>) -> Rect {
 pub(crate) trait RectExtra {
     fn area(&self) -> u64;
     fn iou(&self, other: &Self) -> f32;
+    fn center(&self) -> Point<i32>;
+    fn contains(&self, point: Point<i32>) -> bool;
 }
 
 impl RectExtra for Rect {
@@ -167,5 +170,18 @@ impl RectExtra for Rect {
             let union_area = self.area() + other.area() - inter_area as u64;
             (inter_area as f64 / union_area as f64) as f32
         }
+    }
+
+    fn center(&self) -> Point<i32> {
+        let x = self.left() + self.width() as i32 / 2;
+        let y = self.top() + self.height() as i32 / 2;
+        Point::new(x, y)
+    }
+
+    fn contains(&self, point: Point<i32>) -> bool {
+        point.x >= self.left()
+            && point.x <= self.right()
+            && point.y >= self.top()
+            && point.y <= self.bottom()
     }
 }

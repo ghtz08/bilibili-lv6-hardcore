@@ -10,4 +10,7 @@ pub struct Context {
 
     #[arg(long)]
     pub devices: Vec<String>,
+
+    #[arg(long, default_value = "adb", env = "BILI_LV6_HARDCORE_ADB")]
+    pub adb: String,
 }

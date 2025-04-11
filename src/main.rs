@@ -1,3 +1,4 @@
+mod adb;
 mod context;
 mod location;
 mod logging;

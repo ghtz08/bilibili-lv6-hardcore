@@ -1,7 +1,7 @@
 use chrono::{DateTime, Local};
 use const_format::formatcp;
 
-use std::{io::Write, path::MAIN_SEPARATOR, time::Instant};
+use std::{io::Write, path::MAIN_SEPARATOR, sync::LazyLock, time::Instant};
 
 use crate::context::Context;
 
@@ -13,6 +13,19 @@ pub fn init(args: &Context, start_time: Instant) {
 
     log::set_boxed_logger(Box::new(logger)).unwrap();
     log::set_max_level(args.log_level.to_level_filter());
+}
+
+pub fn init_for_test() {
+    static ONCE: LazyLock<()> = LazyLock::new(|| {
+        let logger = Logger {
+            format: LogFormat::Complete,
+            start_time: Instant::now(),
+        };
+
+        log::set_boxed_logger(Box::new(logger)).unwrap();
+        log::set_max_level(log::LevelFilter::Trace);
+    });
+    let _ = &*ONCE;
 }
 
 struct Logger {
