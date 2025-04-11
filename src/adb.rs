@@ -183,6 +183,14 @@ mod tests {
     }
 
     #[test]
+    fn test_screencap_save() {
+        logging::init_for_test();
+        let adb = Adb::new("adb");
+        let screen = adb.screencap();
+        screen.save("screen.png").unwrap();
+    }
+
+    #[test]
     fn test_random_point() {
         logging::init_for_test();
         let mut adb = Adb::new("adb");
@@ -204,7 +212,7 @@ mod tests {
         logging::init_for_test();
         let adb = Adb::new("adb");
         let (width, height) = adb.screen_size();
-        adb.tap(Point::new((width / 4) as i32, (height / 5 * 3) as i32));
+        adb.tap(Point::new((width / 2) as i32, (height / 2) as i32));
     }
 }
 
