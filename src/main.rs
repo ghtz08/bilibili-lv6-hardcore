@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 mod adb;
 mod context;
 mod logging;
@@ -17,21 +18,28 @@ fn main() {
 
     let mut img_rgb = image::open("target/lv6-hardcore.png").unwrap();
     let gray = img_rgb.to_luma8();
+    let edges = imageproc::edges::canny(&gray, 50.0, 150.0);
 
-    let location = time("location", || PageQuestion::new(&gray));
-    println!("core: {:?}", location.core);
-    println!("check_boxes: {:?}", location.check_boxes);
-    for rect in &location.check_boxes {
+    let question = time("location", || PageQuestion::match_page(&edges)).unwrap();
+    println!("core: {:?}", question.core);
+    println!("check_boxes: {:?}", question.check_boxes);
+    for rect in &question.check_boxes {
         let rect = rect.clone().into();
         draw_hollow_rect_mut(&mut img_rgb, rect, Rgba([255, 0, 0, 255]));
     }
     draw_hollow_rect_mut(
         &mut img_rgb,
-        location.core.clone().into(),
+        question.core.clone().into(),
         Rgba([255, 0, 0, 255]),
     );
 
-    img_rgb.save("target/contours.png").unwrap();
+    let img = img_rgb.crop(
+        question.core.left() as u32,
+        question.core.top() as u32,
+        question.core.width(),
+        question.core.height(),
+    );
+    img.save("target/contours.png").unwrap();
 }
 
 fn time<T>(name: &str, func: impl FnOnce() -> T) -> T {

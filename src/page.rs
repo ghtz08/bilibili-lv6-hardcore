@@ -11,17 +11,19 @@ pub(crate) struct PageQuestion {
 }
 
 impl PageQuestion {
-    pub(crate) fn new(gray: &GrayImage) -> Self {
-        let edges = imageproc::edges::canny(&gray, 50.0, 150.0);
+    pub(crate) fn match_page(edges: &GrayImage) -> Option<Self> {
+        let width = edges.width();
+        let height = edges.height();
+
         let contours_vec = find_contours::<i32>(&edges);
         log::debug!("contours: {}", contours_vec.len());
 
         let contours = contours_vec.iter().filter(|x| {
-            if x.points.len() < gray.width() as usize {
+            if x.points.len() < width as usize {
                 return false;
             }
             let rect = bounding_rect(x);
-            if rect.width() < gray.width() / 2 {
+            if rect.width() < width / 2 {
                 return false;
             }
             true
@@ -31,19 +33,23 @@ impl PageQuestion {
         log::debug!("rects: {}", rects.len());
         let rects = nms(&rects);
         log::debug!("nms: {}", rects.len());
+        const CHOICE_NUMBER: usize = 4;
+        if rects.len() != CHOICE_NUMBER {
+            return None;
+        }
 
         let core = location_core(
             &contours_vec,
             (rects[0].top() as u32 + rects[0].height()) as usize,
             rects[0].height() as usize,
-            gray.width() as usize,
-            gray.height() as usize,
+            width as usize,
+            height as usize,
         );
 
-        PageQuestion {
+        Some(PageQuestion {
             core,
             check_boxes: rects,
-        }
+        })
     }
 }
 
