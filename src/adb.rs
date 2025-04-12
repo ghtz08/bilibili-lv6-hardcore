@@ -11,14 +11,19 @@ use rand_distr::Distribution;
 
 use crate::location::RectExtra;
 
-struct Adb<'a> {
-    adb: &'a str,
+struct Adb {
+    adb: String,
     device: String,
     rng: StdRng,
 }
 
-impl<'a> Adb<'a> {
-    pub fn new(adb: &'a str) -> Self {
+impl Adb {
+    pub fn new(adb: &str) -> Self {
+        let adb = if adb.find(std::path::MAIN_SEPARATOR).is_none() {
+            adb.to_owned()
+        } else {
+            which(adb)
+        };
         let rng = StdRng::from_rng(&mut rand::rng());
         Adb {
             adb,
@@ -118,27 +123,54 @@ impl<'a> Adb<'a> {
     }
 
     fn shell(&self, args: &[&str]) -> Vec<u8> {
-        let mut cmd = Command::new(self.adb);
+        let mut cmd = Command::new(&self.adb);
         if !self.device.is_empty() {
             cmd.arg("-s").arg(&self.device);
         }
-        let out = cmd.args(args).output().expect(&format!(
-            "Failed to execute command: {} {:?}",
-            self.adb, args
-        ));
-        if !out.stderr.is_empty() {
-            log::error!("{} {:?}: {:?}", self.adb, args, out.status,);
-        }
-        if out.status.success() {
-            out.stdout
-        } else {
-            panic!(
-                "{} {:?}\n{}",
-                self.adb,
-                args,
-                String::from_utf8_lossy(&out.stderr)
-            );
-        }
+        command(cmd.args(args))
+    }
+}
+
+fn which(name: &str) -> String {
+    let mut cmd = if cfg!(windows) {
+        let mut cmd = Command::new("powershell.exe");
+        cmd.arg("-Command");
+        cmd.arg(format!("(Get-Command '{}').Source", name));
+        cmd
+    } else if cfg!(unix) {
+        let mut cmd = Command::new("bash");
+        cmd.arg("-c");
+        cmd.arg(format!("command -v '{}'", name));
+        cmd
+    } else {
+        panic!("Unsupported platform");
+    };
+    String::from_utf8_lossy(&command(&mut cmd))
+        .trim()
+        .to_owned()
+}
+
+fn command(cmd: &mut Command) -> Vec<u8> {
+    let out = cmd.output().expect(&format!(
+        "Failed to execute command: {} {:?}",
+        cmd.get_program().to_str().unwrap(),
+        cmd.get_args()
+    ));
+    if out.status.success() {
+        out.stdout
+    } else {
+        log::error!(
+            "{} {:?}: {:?}",
+            cmd.get_program().to_str().unwrap(),
+            cmd.get_args(),
+            out.status,
+        );
+        panic!(
+            "{} {:?}\n{}",
+            cmd.get_program().to_str().unwrap(),
+            cmd.get_args(),
+            String::from_utf8_lossy(&out.stderr)
+        );
     }
 }
 
