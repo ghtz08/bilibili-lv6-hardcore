@@ -5,12 +5,18 @@ use imageproc::{
     rect::Rect,
 };
 
+use crate::answerer::Answer;
+
 pub(crate) struct PageQuestion {
     pub(crate) core: Rect,
     pub(crate) check_boxes: Vec<Rect>,
 }
 
 impl PageQuestion {
+    pub(crate) fn choice(&self, ans: Answer) -> &Rect {
+        &self.check_boxes[ans as usize]
+    }
+
     pub(crate) fn match_page(edges: &GrayImage) -> Option<Self> {
         let width = edges.width();
         let height = edges.height();
@@ -32,18 +38,38 @@ impl PageQuestion {
         let rects: Vec<_> = contours.map(|x| bounding_rect(x)).collect();
         log::debug!("rects: {}", rects.len());
         log::trace!("rects: {:?}", rects);
-        let rects = nms(&rects);
-        log::debug!("nms: {}", rects.len());
-        log::trace!("rects: {:?}", rects);
-        const CHOICE_NUMBER: usize = 4;
-        if rects.len() != CHOICE_NUMBER {
+        let choices = nms(&rects);
+        log::debug!("nms: {}", choices.len());
+        log::trace!("choices: {:?}", choices);
+        let choices = choices.into_iter().filter(|x| {
+            let ratio = x.width() as f32 / x.height() as f32;
+            5.0 <= ratio && ratio <= 8.0
+        });
+        let mut choices: Vec<_> = choices.collect();
+        log::debug!("choices: {}", choices.len());
+
+        const CHOICES_NUMBER: usize = 4;
+        if choices.len() != CHOICES_NUMBER {
+            // let mut img: RgbImage = edges.convert();
+            // for rect in &choices {
+            //     draw_hollow_rect_mut(&mut img, rect.clone(), image::Rgb([255, 0, 0]));
+            // }
+            // img.save("target/debug.png").unwrap();
             return None;
+        }
+        // TODO: 所有的框需要差不多大并且左右间距是一致的，左右间距一致防止截到动画
+        choices.sort_by_key(|x| x.top());
+        for i in 1..choices.len() {
+            if choices[i - 1].bottom() >= choices[i].top() {
+                log::warn!("overlap: {} {}", choices[i - 1].bottom(), choices[i].top());
+                return None;
+            }
         }
 
         let core = location_core(
             &contours_vec,
-            (rects[0].top() as u32 + rects[0].height()) as usize,
-            rects[0].height() as usize,
+            (choices[0].top() as u32 + choices[0].height()) as usize,
+            choices[0].height() as usize,
             width as usize,
             height as usize,
         );
@@ -51,7 +77,7 @@ impl PageQuestion {
 
         Some(PageQuestion {
             core,
-            check_boxes: rects,
+            check_boxes: choices,
         })
     }
 }

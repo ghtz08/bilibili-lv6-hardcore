@@ -2,14 +2,16 @@ use std::io::Cursor;
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use clap::ValueEnum;
-use image::{DynamicImage, ImageFormat, RgbImage};
+use image::{ImageFormat, RgbImage, RgbaImage, buffer::ConvertBuffer};
 use reqwest::{
     blocking::Client,
     header::{HeaderMap, HeaderName, HeaderValue},
 };
 use serde_json::json;
 
-use crate::{json_at, json_value_as_i64, json_value_as_str, json_value_as_vec, parse_json};
+use crate::{
+    context::Context, json_at, json_value_as_i64, json_value_as_str, json_value_as_vec, parse_json,
+};
 
 #[derive(Default)]
 pub struct Multimodal {
@@ -23,6 +25,12 @@ pub struct Multimodal {
 }
 
 impl Multimodal {
+    pub fn from_args(ctx: &Context) -> Self {
+        let url = ctx.api_url.clone();
+        let model = ctx.api_model.clone();
+        let key = ctx.api_key.clone();
+        Self::new(url, model, key)
+    }
     pub fn new(url: String, model: String, key: String) -> Self {
         let client = Client::new();
         Self {
@@ -35,8 +43,8 @@ impl Multimodal {
         }
     }
 
-    pub fn answer(&mut self, question: &DynamicImage) -> Answer {
-        let resp = self.post(question);
+    pub fn answer(&mut self, question: &RgbaImage) -> Answer {
+        let resp = self.post(&question.convert());
         log::trace!("{}", serde_json::to_string(&resp).unwrap());
         let choices = json_value_as_vec!(json_at!(resp, "choices").unwrap()).unwrap();
         let choice = &choices[0];
@@ -60,22 +68,29 @@ impl Multimodal {
             self.tokens()
         );
 
-        // Answer::from_str(message.trim(), true).expect(message)
-        Answer::A
+        Answer::from_str(message.trim(), true).expect(message)
     }
 
-    fn tokens(&self) -> u64 {
+    pub fn input_tokens(&self) -> u64 {
+        self.prompt_tokens
+    }
+
+    pub fn output_tokens(&self) -> u64 {
+        self.completion_tokens
+    }
+
+    pub fn tokens(&self) -> u64 {
         self.prompt_tokens + self.completion_tokens
     }
 
-    fn post(&self, question: &DynamicImage) -> serde_json::Value {
-        let img_base64 = image_to_jpeg_to_base64(&question.to_rgb8());
+    fn post(&self, question: &RgbImage) -> serde_json::Value {
+        let img_base64 = image_to_jpeg_to_base64(&question);
 
         let headers = new_headers(&[
             ("Content-Type", "application/json"),
             ("Authorization", &format!("Bearer {}", self.key)),
         ]);
-        let prompt = "回答这个选择题。回答会被代码解析，只需要回答选项，不需要多余的解释。需要保证正确性，不能随便回答。如果不确定答案，请回答正确的可能性最大的那个。";
+        let prompt = "回答这个选择题。回答会被代码解析，只需要回答选项，不需要多余的解释。需要保证正确性，不能随便回答。如果不确定答案，请回答正确的可能性最大的那个，即使不确定也不需要解释";
         let body = json!({
             "model": self.model,
             "messages": [
@@ -126,10 +141,10 @@ pub fn image_to_jpeg_to_base64(img: &RgbImage) -> String {
     BASE64_STANDARD.encode(&buf)
 }
 
-#[derive(clap::ValueEnum, Clone, Copy)]
+#[derive(clap::ValueEnum, Clone, Copy, Debug)]
 pub enum Answer {
-    A,
-    B,
-    C,
-    D,
+    A = 0,
+    B = 1,
+    C = 2,
+    D = 3,
 }

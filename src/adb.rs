@@ -11,7 +11,7 @@ use rand_distr::Distribution;
 
 use crate::page::RectExtra;
 
-struct Adb {
+pub struct Adb {
     adb: String,
     device: String,
     rng: StdRng,

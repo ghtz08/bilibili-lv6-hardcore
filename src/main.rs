@@ -6,57 +6,89 @@ mod logging;
 mod page;
 mod utils;
 
+use std::path::Path;
+
+use adb::Adb;
 use answerer::Multimodal;
 use clap::Parser;
 use context::Context;
-use image::{GenericImageView, Rgba};
-use imageproc::drawing::draw_hollow_rect_mut;
+use image::{GenericImageView, GrayImage, RgbaImage, buffer::ConvertBuffer};
 use page::PageQuestion;
 
 fn main() {
-    let start_time = std::time::Instant::now();
-    dotenvy::dotenv().ok();
-    let ctx = Context::parse();
-    logging::init(&ctx, start_time);
+    let ctx = global_init();
 
-    let mut img_rgb = image::open("target/lv6-hardcore.png").unwrap();
-    let gray = img_rgb.to_luma8();
-    let edges = imageproc::edges::canny(&gray, 50.0, 150.0);
+    let mut adb = Adb::new(&ctx.adb);
+    wait_question_page(&adb);
 
-    let question = time("location", || PageQuestion::match_page(&edges)).unwrap();
-    for rect in &question.check_boxes {
-        let rect = rect.clone().into();
-        draw_hollow_rect_mut(&mut img_rgb, rect, Rgba([255, 0, 0, 255]));
+    let mut answerer = Multimodal::from_args(&ctx);
+    let mut question_count = 0;
+    while let Some((quesion, page)) = identify_screen(&adb) {
+        question_count += 1;
+        let ans = answerer.answer(&quesion);
+        let choice = page.choice(ans);
+        log::info!("{:03}: answer: {:?}, tap screen", question_count, ans);
+        adb.tap_random(choice);
+        std::thread::sleep(std::time::Duration::from_millis(600));
     }
-    draw_hollow_rect_mut(
-        &mut img_rgb,
-        question.core.clone().into(),
-        Rgba([255, 0, 0, 255]),
+    log::info!(
+        "cost: question: {}: tokens: input: {}, output: {}, total: {}, {:.3}RMB",
+        question_count,
+        answerer.input_tokens(),
+        answerer.output_tokens(),
+        answerer.tokens(),
+        answerer.input_tokens() as f64 / 1_000_000f64 * ctx.api_cost_input
+            + answerer.output_tokens() as f64 / 1_000_000f64 * ctx.api_cost_output
     );
-
-    let img = img_rgb.crop(
-        question.core.left() as u32,
-        question.core.top() as u32,
-        question.core.width(),
-        question.core.height(),
-    );
-
-    let mut answer = Multimodal::new(
-        ctx.api_url.clone(),
-        ctx.api_model.clone(),
-        ctx.api_key.clone(),
-    );
-    answer.answer(&img);
 }
 
-fn time<T>(name: &str, func: impl FnOnce() -> T) -> T {
-    let begin_time = std::time::Instant::now();
-    let res = func();
-    let end_time = std::time::Instant::now();
-    println!(
-        "{}: {:.3}ms",
-        name,
-        end_time.duration_since(begin_time).as_micros() as f64 / 1000.0
-    );
-    res
+fn wait_question_page(adb: &Adb) -> (RgbaImage, PageQuestion) {
+    loop {
+        log::info!("Waiting for question page...");
+        if let Some(val) = identify_screen(adb) {
+            log::info!("Question page detected");
+            return val;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
+}
+
+fn identify_screen(adb: &Adb) -> Option<(RgbaImage, PageQuestion)> {
+    let screen = adb.screencap();
+    let edges = edge_detection(&screen);
+    if let Some(question) = PageQuestion::match_page(&edges) {
+        let core = &question.core;
+        let core = screen
+            .view(
+                core.left() as u32,
+                core.top() as u32,
+                core.width(),
+                core.height(),
+            )
+            .to_image();
+        return Some((core, question));
+    }
+    None
+}
+
+fn edge_detection(img: &RgbaImage) -> GrayImage {
+    let gray: GrayImage = img.convert();
+    let edges = imageproc::edges::canny(&gray, 50.0, 150.0);
+    edges
+}
+
+fn global_init() -> Context {
+    let start_time = std::time::Instant::now();
+    dotenv();
+    let ctx = Context::parse();
+    logging::init(&ctx, start_time);
+    ctx
+}
+
+fn dotenv() {
+    let env_file = std::env::var("BILI_LV6_HARDCORE_DOTENV").unwrap_or(".env".to_owned());
+    let env_file = Path::new(&env_file);
+    if env_file.is_file() {
+        dotenvy::from_path(env_file).unwrap();
+    }
 }
