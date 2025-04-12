@@ -9,7 +9,7 @@ use more_asserts::{assert_ge, assert_gt};
 use rand::{SeedableRng, rngs::StdRng};
 use rand_distr::Distribution;
 
-use crate::location::RectExtra;
+use crate::page::RectExtra;
 
 struct Adb {
     adb: String,

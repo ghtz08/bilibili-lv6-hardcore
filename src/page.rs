@@ -5,12 +5,12 @@ use imageproc::{
     rect::Rect,
 };
 
-pub(crate) struct Location {
+pub(crate) struct PageQuestion {
     pub(crate) core: Rect,
     pub(crate) check_boxes: Vec<Rect>,
 }
 
-impl Location {
+impl PageQuestion {
     pub(crate) fn new(gray: &GrayImage) -> Self {
         let edges = imageproc::edges::canny(&gray, 50.0, 150.0);
         let contours_vec = find_contours::<i32>(&edges);
@@ -40,7 +40,7 @@ impl Location {
             gray.height() as usize,
         );
 
-        Location {
+        PageQuestion {
             core,
             check_boxes: rects,
         }

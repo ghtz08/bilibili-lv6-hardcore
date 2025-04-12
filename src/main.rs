@@ -1,13 +1,13 @@
 mod adb;
 mod context;
-mod location;
 mod logging;
+mod page;
 
 use clap::Parser;
 use context::Context;
 use image::Rgba;
 use imageproc::drawing::draw_hollow_rect_mut;
-use location::Location;
+use page::PageQuestion;
 
 fn main() {
     let start_time = std::time::Instant::now();
@@ -18,7 +18,7 @@ fn main() {
     let mut img_rgb = image::open("target/lv6-hardcore.png").unwrap();
     let gray = img_rgb.to_luma8();
 
-    let location = time("location", || Location::new(&gray));
+    let location = time("location", || PageQuestion::new(&gray));
     println!("core: {:?}", location.core);
     println!("check_boxes: {:?}", location.check_boxes);
     for rect in &location.check_boxes {
