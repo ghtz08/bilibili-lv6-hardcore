@@ -249,7 +249,7 @@ mod tests {
 }
 
 #[derive(Debug)]
-enum Device {
+pub enum Device {
     Unauthorized(String),
     Device(String),
 }
