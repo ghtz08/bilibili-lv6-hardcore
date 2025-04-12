@@ -1,12 +1,15 @@
 #![allow(dead_code)]
 mod adb;
+mod answerer;
 mod context;
 mod logging;
 mod page;
+mod utils;
 
+use answerer::Multimodal;
 use clap::Parser;
 use context::Context;
-use image::Rgba;
+use image::{GenericImageView, Rgba};
 use imageproc::drawing::draw_hollow_rect_mut;
 use page::PageQuestion;
 
@@ -21,8 +24,6 @@ fn main() {
     let edges = imageproc::edges::canny(&gray, 50.0, 150.0);
 
     let question = time("location", || PageQuestion::match_page(&edges)).unwrap();
-    println!("core: {:?}", question.core);
-    println!("check_boxes: {:?}", question.check_boxes);
     for rect in &question.check_boxes {
         let rect = rect.clone().into();
         draw_hollow_rect_mut(&mut img_rgb, rect, Rgba([255, 0, 0, 255]));
@@ -39,7 +40,13 @@ fn main() {
         question.core.width(),
         question.core.height(),
     );
-    img.save("target/contours.png").unwrap();
+
+    let mut answer = Multimodal::new(
+        ctx.api_url.clone(),
+        ctx.api_model.clone(),
+        ctx.api_key.clone(),
+    );
+    answer.answer(&img);
 }
 
 fn time<T>(name: &str, func: impl FnOnce() -> T) -> T {

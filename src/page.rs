@@ -31,8 +31,10 @@ impl PageQuestion {
 
         let rects: Vec<_> = contours.map(|x| bounding_rect(x)).collect();
         log::debug!("rects: {}", rects.len());
+        log::trace!("rects: {:?}", rects);
         let rects = nms(&rects);
         log::debug!("nms: {}", rects.len());
+        log::trace!("rects: {:?}", rects);
         const CHOICE_NUMBER: usize = 4;
         if rects.len() != CHOICE_NUMBER {
             return None;
@@ -45,6 +47,7 @@ impl PageQuestion {
             width as usize,
             height as usize,
         );
+        log::trace!("core: {:?}", core);
 
         Some(PageQuestion {
             core,

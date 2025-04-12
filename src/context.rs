@@ -13,4 +13,11 @@ pub struct Context {
 
     #[arg(long, default_value = "adb", env = "BILI_LV6_HARDCORE_ADB")]
     pub adb: String,
+
+    #[arg(long, env = "BILI_LV6_HARDCORE_API_URL")]
+    pub api_url: String,
+    #[arg(long, env = "BILI_LV6_HARDCORE_API_MODEL")]
+    pub api_model: String,
+    #[arg(long, env = "BILI_LV6_HARDCORE_API_KEY")]
+    pub api_key: String,
 }
