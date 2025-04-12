@@ -10,8 +10,9 @@ pub struct Context {
     #[arg(long, default_value = "simple", env = "BILI_LV6_HARDCORE_LOG_FORMAT")]
     pub log_format: LogFormat,
 
+    /// 连接指定的设备，adb 的 -s 参数的值
     #[arg(long)]
-    pub devices: Vec<String>,
+    pub device: Option<String>,
 
     #[arg(long, default_value = "adb", env = "BILI_LV6_HARDCORE_ADB")]
     pub adb: String,
@@ -23,12 +24,14 @@ pub struct Context {
     #[arg(long, env = "BILI_LV6_HARDCORE_API_KEY")]
     pub api_key: String,
 
+    /// 每百万输入token的费用
     #[arg(
         long,
         default_value = "1.5",
         env = "BILI_LV6_HARDCORE_API_COST_INPUT_PER_MILLION_TOKENS"
     )]
     pub api_cost_input: f64,
+    /// 每百万输出token的费用
     #[arg(
         long,
         default_value = "4.5",
@@ -36,6 +39,7 @@ pub struct Context {
     )]
     pub api_cost_output: f64,
 
+    /// 调试用，保存未识别的截图
     #[arg(long, env = "BILI_LV6_HARDCORE_DEBUG_SAVE_PATH")]
     pub debug_save_path: Option<PathBuf>,
 }

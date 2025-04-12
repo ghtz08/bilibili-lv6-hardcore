@@ -23,6 +23,9 @@ fn main() {
     let ctx = global_init();
 
     let mut adb = Adb::new(&ctx.adb);
+    if let Some(device) = &ctx.device {
+        adb.set_device(device.to_owned());
+    }
     wait_question_page(&adb);
 
     let mut answerer = Multimodal::from_args(&ctx);
