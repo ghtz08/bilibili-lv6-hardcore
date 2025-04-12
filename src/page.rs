@@ -1,9 +1,12 @@
+use std::ops::Sub;
+
 use image::GrayImage;
 use imageproc::{
     contours::{Contour, find_contours},
     point::Point,
     rect::Rect,
 };
+use num_traits::Bounded;
 
 use crate::answerer::Answer;
 
@@ -17,7 +20,7 @@ impl PageQuestion {
         &self.check_boxes[ans as usize]
     }
 
-    pub(crate) fn match_page(edges: &GrayImage) -> Option<Self> {
+    pub(crate) fn match_page(edges: &GrayImage) -> Result<Self, Vec<Rect>> {
         let width = edges.width();
         let height = edges.height();
 
@@ -42,27 +45,40 @@ impl PageQuestion {
         log::debug!("nms: {}", choices.len());
         log::trace!("choices: {:?}", choices);
         let choices = choices.into_iter().filter(|x| {
+            // 排除宽高比过大或者过小的框
             let ratio = x.width() as f32 / x.height() as f32;
             5.0 <= ratio && ratio <= 8.0
         });
-        let mut choices: Vec<_> = choices.collect();
+        let choices: Vec<_> = choices.collect();
         log::debug!("choices: {}", choices.len());
 
         const CHOICES_NUMBER: usize = 4;
         if choices.len() != CHOICES_NUMBER {
-            // let mut img: RgbImage = edges.convert();
-            // for rect in &choices {
-            //     draw_hollow_rect_mut(&mut img, rect.clone(), image::Rgb([255, 0, 0]));
-            // }
-            // img.save("target/debug.png").unwrap();
-            return None;
+            return Err(choices);
         }
-        // TODO: 所有的框需要差不多大并且左右间距是一致的，左右间距一致防止截到动画
+
+        // 所有的框需要差不多大并且左右间距是一致的，左右间距一致防止截到过渡动画
+        let same_w = is_difference_small(choices.iter().map(|x| x.width()), 3);
+        let same_h = is_difference_small(choices.iter().map(|x| x.height()), 3);
+        let same_l = is_difference_small(choices.iter().map(|x| x.left()), 3);
+        let same_r = is_difference_small(choices.iter().map(|x| x.right()), 3);
+        if !same_w || !same_h || !same_l || !same_r {
+            log::debug!(
+                "not same: w: {}, h: {}, l: {}, r: {}",
+                same_w,
+                same_h,
+                same_l,
+                same_r
+            );
+            return Err(choices);
+        }
+
+        let mut choices = choices;
         choices.sort_by_key(|x| x.top());
         for i in 1..choices.len() {
             if choices[i - 1].bottom() >= choices[i].top() {
                 log::warn!("overlap: {} {}", choices[i - 1].bottom(), choices[i].top());
-                return None;
+                return Err(choices);
             }
         }
 
@@ -75,11 +91,30 @@ impl PageQuestion {
         );
         log::trace!("core: {:?}", core);
 
-        Some(PageQuestion {
+        Ok(PageQuestion {
             core,
             check_boxes: choices,
         })
     }
+}
+
+fn is_difference_small<T>(data: impl Iterator<Item = T>, threshold: T) -> bool
+where
+    T: Bounded + PartialOrd + Copy + Sub<Output = T>,
+{
+    let mut min = T::min_value();
+    let mut max = T::max_value();
+    let mut n = 0usize;
+    for val in data {
+        n += 1;
+        if val < min {
+            min = val;
+        }
+        if val > max {
+            max = val;
+        }
+    }
+    n == 0 || max - min <= threshold
 }
 
 fn location_core(

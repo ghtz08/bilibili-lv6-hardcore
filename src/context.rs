@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::logging::LogFormat;
 
 #[derive(clap::Parser, Debug)]
@@ -33,4 +35,7 @@ pub struct Context {
         env = "BILI_LV6_HARDCORE_API_COST_OUTPUT_PER_MILLION_TOKENS"
     )]
     pub api_cost_output: f64,
+
+    #[arg(long, env = "BILI_LV6_HARDCORE_DEBUG_SAVE_PATH")]
+    pub debug_save_path: Option<PathBuf>,
 }

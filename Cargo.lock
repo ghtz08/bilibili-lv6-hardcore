@@ -164,6 +164,7 @@ dependencies = [
  "imageproc",
  "log",
  "more-asserts",
+ "num-traits",
  "rand 0.9.0",
  "rand_distr 0.5.1",
  "reqwest",
