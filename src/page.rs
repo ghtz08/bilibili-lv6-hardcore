@@ -1,4 +1,4 @@
-use std::ops::Sub;
+use std::{fmt::Display, ops::Sub};
 
 use image::GrayImage;
 use imageproc::{
@@ -59,17 +59,10 @@ impl PageQuestion {
 
         // 所有的框需要差不多大并且左右间距是一致的，左右间距一致防止截到过渡动画
         let same_w = is_difference_small(choices.iter().map(|x| x.width()), 3);
-        let same_h = is_difference_small(choices.iter().map(|x| x.height()), 3);
         let same_l = is_difference_small(choices.iter().map(|x| x.left()), 3);
         let same_r = is_difference_small(choices.iter().map(|x| x.right()), 3);
-        if !same_w || !same_h || !same_l || !same_r {
-            log::debug!(
-                "not same: w: {}, h: {}, l: {}, r: {}",
-                same_w,
-                same_h,
-                same_l,
-                same_r
-            );
+        if !same_w || !same_l || !same_r {
+            log::debug!("not same: w: {}, l: {}, r: {}", same_w, same_l, same_r);
             return Err(choices);
         }
 
@@ -100,10 +93,10 @@ impl PageQuestion {
 
 fn is_difference_small<T>(data: impl Iterator<Item = T>, threshold: T) -> bool
 where
-    T: Bounded + PartialOrd + Copy + Sub<Output = T>,
+    T: Bounded + PartialOrd + Copy + Sub<Output = T> + Display,
 {
-    let mut min = T::min_value();
-    let mut max = T::max_value();
+    let mut min = T::max_value();
+    let mut max = T::min_value();
     let mut n = 0usize;
     for val in data {
         n += 1;
@@ -114,7 +107,11 @@ where
             max = val;
         }
     }
-    n == 0 || max - min <= threshold
+    let small = n == 0 || max - min <= threshold;
+    if !small {
+        log::debug!("difference_small: {min}, {max}");
+    }
+    small
 }
 
 fn location_core(
