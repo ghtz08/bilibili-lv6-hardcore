@@ -57,12 +57,17 @@ impl PageQuestion {
             return Err(choices);
         }
 
-        // 所有的框需要差不多大并且左右间距是一致的，左右间距一致防止截到过渡动画
+        // 所有的框需要差不多宽并且左右间距是一致的，左右间距一致防止截到过渡动画
         let same_w = is_difference_small(choices.iter().map(|x| x.width()), 3);
         let same_l = is_difference_small(choices.iter().map(|x| x.left()), 3);
-        let same_r = is_difference_small(choices.iter().map(|x| x.right()), 3);
-        if !same_w || !same_l || !same_r {
-            log::debug!("not same: w: {}, l: {}, r: {}", same_w, same_l, same_r);
+        let same_lr_pad = (choices[1].left() - choices[0].right()).abs() < 3;
+        if !same_w || !same_l || !same_lr_pad {
+            log::debug!(
+                "not same: w: {}, l: {}, lr: {}",
+                same_w,
+                same_l,
+                same_lr_pad
+            );
             return Err(choices);
         }
 
