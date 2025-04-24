@@ -9,6 +9,6 @@ cargo build --release
 
 ## 使用
 
-1. `adb devices` 能看到设备。
+1. `adb devices` 能看到设备并且能通过 `adb shell input` 模拟点击屏幕。
 2. 多模态模型 API 接口服务。
 3. 打开手机 B站，进入到做题页面之后运行程序。
