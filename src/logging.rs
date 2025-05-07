@@ -1,26 +1,26 @@
 use chrono::{DateTime, Local};
 use const_format::formatcp;
 
-use std::{io::Write, path::MAIN_SEPARATOR, sync::LazyLock, time::Instant};
+use std::{
+    io::Write,
+    path::MAIN_SEPARATOR,
+    sync::{LazyLock, Mutex},
+    time::Instant,
+};
 
 use crate::context::Context;
 
 pub fn init(args: &Context, start_time: Instant) {
-    let logger = Logger {
-        format: args.log_format,
-        start_time: start_time,
-    };
+    let logger = Logger::new(args.log_format, start_time);
 
     log::set_boxed_logger(Box::new(logger)).unwrap();
     log::set_max_level(args.log_level.to_level_filter());
+    log::info!("System time {}", DateTimeFormat(Local::now()));
 }
 
 pub fn init_for_test() {
     static ONCE: LazyLock<()> = LazyLock::new(|| {
-        let logger = Logger {
-            format: LogFormat::Complete,
-            start_time: Instant::now(),
-        };
+        let logger = Logger::new(LogFormat::Complete, Instant::now());
 
         log::set_boxed_logger(Box::new(logger)).unwrap();
         log::set_max_level(log::LevelFilter::Trace);
@@ -31,6 +31,17 @@ pub fn init_for_test() {
 struct Logger {
     format: LogFormat,
     start_time: Instant,
+    last_time: Mutex<Instant>,
+}
+
+impl Logger {
+    fn new(format: LogFormat, start_time: Instant) -> Self {
+        Self {
+            format,
+            start_time,
+            last_time: Mutex::new(start_time),
+        }
+    }
 }
 
 impl log::Log for Logger {
@@ -43,15 +54,24 @@ impl log::Log for Logger {
             println!("{}", record.args());
             return;
         }
-        let elapsed_time = DurationFormat(self.start_time.elapsed().as_micros() as u64);
-        let date_time = DateTimeFormat(Local::now());
+
+        let current_time = Instant::now();
+        let since_last;
+        {
+            let mut last_time = self.last_time.lock().unwrap();
+            since_last = current_time.duration_since(*last_time);
+            *last_time = current_time;
+        }
+        let since_last = since_last.as_micros() as f32 / 1000.0;
+        let elapsed_time =
+            DurationFormat(current_time.duration_since(self.start_time).as_micros() as u64);
         let log_level = format_level(record.level());
         let source_file = SourceFileFormat::new(
             record.file().unwrap_or_default(),
             record.line().unwrap_or_default(),
         );
         let message = format!(
-            "{date_time} {elapsed_time} {log_level} {source_file} {}\n",
+            "{elapsed_time} {log_level} {} {source_file} {since_last:.3}ms\n",
             record.args()
         );
 
@@ -117,7 +137,7 @@ impl std::fmt::Display for DateTimeFormat {
         write!(
             f,
             "{}.{:03},{:03}",
-            self.0.format("%y%m%d-%H%M%S"),
+            self.0.format("%Y-%m-%d %H:%M:%S"),
             millis,
             micros % 1000
         )
@@ -145,9 +165,6 @@ impl<'a> std::fmt::Display for SourceFileFormat<'a> {
         if let Some(pos) = name.rfind(MAIN_SEPARATOR) {
             name = &name[pos + 1..];
         }
-        let res = format!("{name:>10}:{:<3}", self.line);
-        let res = res.as_bytes();
-        let res = std::str::from_utf8(&res[res.len() - (10 + 1 + 3)..]).unwrap();
-        write!(f, "{}", res)
+        write!(f, "{}:{}", name, self.line)
     }
 }
