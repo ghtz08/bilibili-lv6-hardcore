@@ -60,7 +60,7 @@ impl PageQuestion {
         // 所有的框需要差不多宽并且左右间距是一致的，左右间距一致防止截到过渡动画
         let same_w = is_difference_small(choices.iter().map(|x| x.width()), 3);
         let same_l = is_difference_small(choices.iter().map(|x| x.left()), 3);
-        let same_lr_pad = (choices[1].left() - choices[0].right()).abs() < 3;
+        let same_lr_pad = (choices[0].left() - (width as i32 - choices[0].right())).abs() < 3;
         if !same_w || !same_l || !same_lr_pad {
             log::debug!(
                 "not same: w: {}, l: {}, lr: {}",

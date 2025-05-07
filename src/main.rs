@@ -30,7 +30,7 @@ fn main() {
 
     let mut answerer = Multimodal::from_args(&ctx);
     let mut question_count = 0;
-    const INTERVAL: Duration = Duration::from_millis(600);
+    const INTERVAL: Duration = Duration::from_millis(750);
     loop {
         let mut res = None;
         const IDENTIFY_TRY_LIMIT: usize = 2;
@@ -96,7 +96,6 @@ fn identify_screen(adb: &Adb, save_error: &Option<PathBuf>) -> Option<(RgbaImage
         }
         Err(rects) => {
             if let Some(save_path) = save_error {
-                log::debug!("save error image: {:?}", save_path);
                 if !save_path.exists() {
                     std::fs::create_dir_all(save_path).unwrap();
                 }
@@ -107,7 +106,9 @@ fn identify_screen(adb: &Adb, save_error: &Option<PathBuf>) -> Option<(RgbaImage
                     "screen-{}.jpg",
                     chrono::Local::now().format("%y%m%d-%H%M%S")
                 );
-                edges.save(save_path.join(name)).unwrap();
+                let file = save_path.join(name);
+                log::debug!("save error image: {:?}", file);
+                edges.save(file).unwrap();
             }
             None
         }
