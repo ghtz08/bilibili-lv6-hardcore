@@ -68,7 +68,24 @@ impl Multimodal {
             self.tokens()
         );
 
-        Answer::from_str(message.trim(), true).expect(message)
+        let answer = message.trim();
+        let answer = if answer.len() == 1 {
+            answer.chars().next().unwrap()
+        } else {
+            let pos = answer.find("答案").unwrap();
+            let mut ans = ' ';
+            for c in answer[pos..].chars() {
+                if c.is_ascii_alphabetic() {
+                    ans = c;
+                    break;
+                }
+            }
+            ans
+        };
+
+        let mut buf = [0u8; 4];
+        let answer: &str = answer.encode_utf8(&mut buf);
+        Answer::from_str(answer, true).expect(answer)
     }
 
     pub fn input_tokens(&self) -> u64 {
@@ -90,7 +107,7 @@ impl Multimodal {
             ("Content-Type", "application/json"),
             ("Authorization", &format!("Bearer {}", self.key)),
         ]);
-        let prompt = "回答这个选择题。回答会被代码解析，只需要回答选项，不需要多余的解释。需要保证正确性，不能随便回答。如果不确定答案，请回答正确的可能性最大的那个，即使不确定也不需要解释";
+        let prompt = "回答图片里的选择题。你的回答会被代码解析，只需要回答选项，不需要多余的解释。需要保证正确性，不能随便回答。如果不确定答案，请回答正确的可能性最大的那个，即使不确定也不需要任何解释和说明";
         let body = json!({
             "model": self.model,
             "messages": [
