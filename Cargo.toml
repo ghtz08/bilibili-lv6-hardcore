@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 base64 = "0.22.1"
 chrono = "0.4.41"
-clap = { version = "4.5.39", features = ["derive", "env"] }
+clap = { version = "4.5.41", features = ["derive", "env"] }
 const_format = "0.2.34"
 dotenvy = { version = "0.15.7", features = ["clap"] }
 image = { version = "0.25.6", default-features = false, features = ["jpeg", "png"] }
@@ -16,7 +16,7 @@ more-asserts = "0.3.1"
 num-traits = "0.2.19"
 rand = { version = "0.9.1", features = ["std_rng"] }
 rand_distr = "0.5.1"
-reqwest = { version = "0.12.18", default-features = false, features = [
+reqwest = { version = "0.12.22", default-features = false, features = [
     "charset",
     "h2",
     "http2",
