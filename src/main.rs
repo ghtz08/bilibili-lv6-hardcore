@@ -124,7 +124,8 @@ fn edge_detection(img: &RgbaImage) -> GrayImage {
 fn global_init() -> Context {
     let start_time = std::time::Instant::now();
     dotenv();
-    let ctx = Context::parse();
+    let mut ctx = Context::parse();
+    ctx.check();
     logging::init(&ctx, start_time);
     ctx
 }

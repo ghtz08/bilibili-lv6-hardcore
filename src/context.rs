@@ -17,6 +17,14 @@ pub struct Context {
     #[arg(long, default_value = "adb", env = "BILI_LV6_HARDCORE_ADB")]
     pub adb: String,
 
+    // 遇到无法识别的答案，容许随机选择的比例
+    #[arg(
+        long,
+        default_value_t = 0.03,
+        env = "BILI_LV6_HARDCORE_ANSWER_FALLBACK_RATIO"
+    )]
+    pub answer_fallback_ratio: f32,
+
     #[arg(long, env = "BILI_LV6_HARDCORE_API_URL")]
     pub api_url: String,
     #[arg(long, env = "BILI_LV6_HARDCORE_API_MODEL")]
@@ -42,4 +50,10 @@ pub struct Context {
     /// 调试用，保存未识别的截图
     #[arg(long, env = "BILI_LV6_HARDCORE_DEBUG_SAVE_PATH")]
     pub debug_save_path: Option<PathBuf>,
+}
+
+impl Context {
+    pub fn check(&mut self) {
+        assert!(self.answer_fallback_ratio >= 0.0 && self.answer_fallback_ratio <= 1.0);
+    }
 }
