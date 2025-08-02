@@ -194,7 +194,7 @@ fn parse_answer(arg_answer: &str) -> Option<Answer> {
         ans
     };
 
-    match answer.to_ascii_lowercase() {
+    match answer.to_ascii_uppercase() {
         'A' => Some(Answer::A),
         'B' => Some(Answer::B),
         'C' => Some(Answer::C),
