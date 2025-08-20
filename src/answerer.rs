@@ -82,7 +82,7 @@ impl Multimodal {
             let ratio = self.answer_fallback_count as f32 / self.answer_total_count as f32;
             assert!(
                 ratio <= limit,
-                "fallback ratio exceeded: {ratio} > {}",
+                "fallback ratio exceeded: {ratio} > {}: {message}",
                 limit
             );
             Answer::random()
@@ -183,7 +183,7 @@ fn parse_answer(arg_answer: &str) -> Option<Answer> {
     let answer = if answer.len() == 1 {
         answer.chars().next().unwrap()
     } else {
-        let pos = answer.find("答案").unwrap();
+        let pos = answer.find("答案")?;
         let mut ans = ' ';
         for c in answer[pos..].chars() {
             if c.is_ascii_alphabetic() {
