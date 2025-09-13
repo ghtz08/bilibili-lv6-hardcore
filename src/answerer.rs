@@ -85,6 +85,7 @@ impl Multimodal {
                 "fallback ratio exceeded: {ratio} > {}: {message}",
                 limit
             );
+            log::warn!("failed to parse answer: {message}, use random answer");
             Answer::random()
         })
     }
