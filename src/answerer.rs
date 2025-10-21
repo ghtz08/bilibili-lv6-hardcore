@@ -99,8 +99,9 @@ impl Multimodal {
                 "fallback ratio exceeded: {ratio} > {}: {message}",
                 limit
             );
-            log::warn!("failed to parse answer: {message}, use random answer");
-            Answer::random()
+            let ans = Answer::random();
+            log::warn!("failed to parse answer: {message}, use random answer: {}", ans.to_str());
+            ans
         })
     }
 
@@ -197,6 +198,14 @@ impl Answer {
             1 => Answer::B,
             2 => Answer::C,
             _ => Answer::D,
+        }
+    }
+    pub fn to_str<'a>(&self) -> &'a str {
+        match self {
+            Answer::A => "A",
+            Answer::B => "B",
+            Answer::C => "C",
+            Answer::D => "D",
         }
     }
 }
