@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{io::Cursor, time::Duration};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use image::{ImageFormat, RgbImage, RgbaImage, buffer::ConvertBuffer};
@@ -19,6 +19,7 @@ pub struct Multimodal {
     model: String,
     key: String,
     client: Client,
+    thinking: bool,
 
     prompt_tokens: u64,
     completion_tokens: u64,
@@ -33,15 +34,28 @@ impl Multimodal {
         let url = ctx.api_url.clone();
         let model = ctx.api_model.clone();
         let key = ctx.api_key.clone();
-        Self::new(url, model, key, ctx.answer_fallback_ratio)
+        Self::new(
+            url,
+            model,
+            key,
+            ctx.answer_fallback_ratio,
+            ctx.answer_thinking,
+        )
     }
-    pub fn new(url: String, model: String, key: String, fallback_ratio: f32) -> Self {
+    pub fn new(
+        url: String,
+        model: String,
+        key: String,
+        fallback_ratio: f32,
+        thinking: bool,
+    ) -> Self {
         let client = Client::new();
         Self {
             url,
             model,
             key,
             client,
+            thinking,
             prompt_tokens: 0,
             completion_tokens: 0,
             answer_total_count: 0,
@@ -129,10 +143,18 @@ impl Multimodal {
                     ],
                 },
             ],
+            "thinking": {
+                "type": if self.thinking { "enabled" } else { "disabled" },
+            },
         });
         let body = body.to_string();
         log::debug!("request {}", self.url);
-        let resp = self.client.post(&self.url).headers(headers).body(body);
+        let resp = self
+            .client
+            .post(&self.url)
+            .headers(headers)
+            .body(body)
+            .timeout(Duration::from_secs(600));
         let resp = resp.send().unwrap();
 
         let resp_status = resp.status();

@@ -25,6 +25,14 @@ pub struct Context {
     )]
     pub answer_fallback_ratio: f32,
 
+    // 是否开启模型的思考功能
+    #[arg(
+        long,
+        default_value_t = false,
+        env = "BILI_LV6_HARDCORE_ANSWER_THINKING"
+    )]
+    pub answer_thinking: bool,
+
     #[arg(long, env = "BILI_LV6_HARDCORE_API_URL")]
     pub api_url: String,
     #[arg(long, env = "BILI_LV6_HARDCORE_API_MODEL")]
