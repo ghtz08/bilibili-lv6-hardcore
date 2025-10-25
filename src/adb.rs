@@ -70,7 +70,7 @@ impl Adb {
         let (x, y) = loop {
             let x = normal.sample(&mut self.rng);
             let y = normal.sample(&mut self.rng);
-            if 0.0 <= x && x < 1.0 && 0.0 <= y && y < 1.0 {
+            if (0.0..1.0).contains(&x) && (0.0..1.0).contains(&y) {
                 break (x, y);
             }
         };
@@ -151,11 +151,14 @@ fn which(name: &str) -> String {
 }
 
 fn command(cmd: &mut Command) -> Vec<u8> {
-    let out = cmd.output().expect(&format!(
-        "Failed to execute command: {} {:?}",
-        cmd.get_program().to_str().unwrap(),
-        cmd.get_args()
-    ));
+    let out = cmd.output().unwrap_or_else(|e| {
+        panic!(
+            "Failed to execute command: {} {:?}: {}",
+            cmd.get_program().to_str().unwrap(),
+            cmd.get_args(),
+            e
+        )
+    });
     if out.status.success() {
         out.stdout
     } else {

@@ -100,7 +100,10 @@ impl Multimodal {
                 limit
             );
             let ans = Answer::random();
-            log::warn!("failed to parse answer: {message}, use random answer: {}", ans.to_str());
+            log::warn!(
+                "failed to parse answer: {message}, use random answer: {}",
+                ans.to_str()
+            );
             ans
         })
     }
@@ -118,7 +121,7 @@ impl Multimodal {
     }
 
     fn post(&self, question: &RgbImage) -> serde_json::Value {
-        let img_base64 = image_to_jpeg_to_base64(&question);
+        let img_base64 = image_to_jpeg_to_base64(question);
 
         let headers = new_headers(&[
             ("Content-Type", "application/json"),
@@ -160,7 +163,7 @@ impl Multimodal {
 
         let resp_status = resp.status();
         let resp = resp.error_for_status();
-        let resp = resp.expect(&format!("status: {}", resp_status));
+        let resp = resp.unwrap_or_else(|_| panic!("status: {resp_status}"));
 
         parse_json!(resp.text().unwrap())
     }
@@ -200,7 +203,7 @@ impl Answer {
             _ => Answer::D,
         }
     }
-    pub fn to_str<'a>(&self) -> &'a str {
+    pub fn to_str<'a>(self) -> &'a str {
         match self {
             Answer::A => "A",
             Answer::B => "B",

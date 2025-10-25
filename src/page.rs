@@ -24,7 +24,7 @@ impl PageQuestion {
         let width = edges.width();
         let height = edges.height();
 
-        let contours_vec = find_contours::<i32>(&edges);
+        let contours_vec = find_contours::<i32>(edges);
         log::debug!("contours: {}", contours_vec.len());
 
         let contours = contours_vec.iter().filter(|x| {
@@ -38,7 +38,7 @@ impl PageQuestion {
             true
         });
 
-        let rects: Vec<_> = contours.map(|x| bounding_rect(x)).collect();
+        let rects: Vec<_> = contours.map(bounding_rect).collect();
         log::debug!("rects: {}", rects.len());
         log::trace!("rects: {:?}", rects);
         let choices = nms(&rects);
@@ -47,7 +47,7 @@ impl PageQuestion {
         let choices = choices.into_iter().filter(|x| {
             // 排除宽高比过大或者过小的框
             let ratio = x.width() as f32 / x.height() as f32;
-            5.0 <= ratio && ratio <= 8.0
+            (5.0..=8.0).contains(&ratio)
         });
         let choices: Vec<_> = choices.collect();
         log::debug!("choices: {}", choices.len());
@@ -149,8 +149,8 @@ fn location_core(
     }
     let mut bottom_y = img_h;
     let mut begin = center;
-    for i in center..img_h {
-        if point_count[i] < THRESHOLD {
+    for (i, item) in point_count.iter().enumerate().take(img_h).skip(center) {
+        if *item < THRESHOLD {
             continue;
         }
         if i - begin > box_h + 1 {
@@ -182,13 +182,13 @@ fn nms(rects: &[Rect]) -> Vec<Rect> {
                 suppression = true;
                 if src.area() > target.area() {
                     res.pop();
-                    res.push(src.clone());
+                    res.push(*src);
                 }
                 break;
             }
         }
         if !suppression {
-            res.push(src.clone());
+            res.push(*src);
         }
     }
     res

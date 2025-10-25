@@ -117,8 +117,7 @@ fn identify_screen(adb: &Adb, save_error: &Option<PathBuf>) -> Option<(RgbaImage
 
 fn edge_detection(img: &RgbaImage) -> GrayImage {
     let gray: GrayImage = img.convert();
-    let edges = imageproc::edges::canny(&gray, 50.0, 150.0);
-    edges
+    imageproc::edges::canny(&gray, 50.0, 150.0)
 }
 
 fn global_init() -> Context {

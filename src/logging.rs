@@ -132,7 +132,7 @@ struct DateTimeFormat(DateTime<Local>);
 
 impl std::fmt::Display for DateTimeFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let micros = self.0.timestamp_subsec_micros() % 1000_000;
+        let micros = self.0.timestamp_subsec_micros() % 1_000_000;
         let millis = micros / 1000;
         write!(
             f,
