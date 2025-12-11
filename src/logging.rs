@@ -18,6 +18,7 @@ pub fn init(args: &Context, start_time: Instant) {
     log::info!("System time {}", DateTimeFormat(Local::now()));
 }
 
+#[allow(dead_code)]
 pub fn init_for_test() {
     static ONCE: LazyLock<()> = LazyLock::new(|| {
         let logger = Logger::new(LogFormat::Complete, Instant::now());
@@ -93,6 +94,7 @@ impl LogFormat {
     fn is_simple(&self) -> bool {
         matches!(self, LogFormat::Simple)
     }
+    #[allow(dead_code)]
     fn is_complete(&self) -> bool {
         matches!(self, LogFormat::Complete)
     }

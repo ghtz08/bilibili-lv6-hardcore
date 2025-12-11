@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+// #![deny(clippy::unwrap_used)]
 mod adb;
 mod answerer;
 mod context;

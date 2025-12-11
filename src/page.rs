@@ -222,6 +222,7 @@ pub(crate) trait RectExtra {
     fn area(&self) -> u64;
     fn iou(&self, other: &Self) -> f32;
     fn center(&self) -> Point<i32>;
+    #[allow(dead_code)]
     fn contains(&self, point: Point<i32>) -> bool;
 }
 

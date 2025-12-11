@@ -86,6 +86,7 @@ impl Adb {
         screen.into_rgba8()
     }
 
+    #[allow(dead_code)]
     pub fn screen_size(&self) -> (u32, u32) {
         let out = self.shell(&["shell", "wm", "size"]);
         let out = String::from_utf8_lossy(&out);
@@ -101,6 +102,7 @@ impl Adb {
         self.device = device;
     }
 
+    #[allow(dead_code)]
     pub fn devices(&self) -> Vec<Device> {
         let stdout = self.shell(&["devices"]);
         let stdout = String::from_utf8_lossy(&stdout);
@@ -251,6 +253,7 @@ mod tests {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Device {
     Unauthorized(String),
