@@ -179,7 +179,7 @@ fn command(cmd: &mut Command) -> Vec<u8> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "test-adb"))]
 mod tests {
     use more_asserts::assert_le;
 
