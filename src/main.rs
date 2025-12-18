@@ -11,12 +11,13 @@ use std::{
     time::Duration,
 };
 
-use adb::Adb;
-use answerer::Multimodal;
 use clap::Parser;
-use context::Context;
 use image::{GenericImageView, GrayImage, RgbaImage, buffer::ConvertBuffer};
 use imageproc::drawing::draw_hollow_rect_mut;
+
+use adb::Adb;
+use answerer::{Answer, Multimodal};
+use context::Context;
 use page::PageQuestion;
 
 fn main() {
@@ -29,7 +30,8 @@ fn main() {
     wait_question_page(&adb);
 
     let mut answerer = Multimodal::from_args(&ctx);
-    let mut question_count = 0;
+    let mut question_count = 0u32;
+    let mut fallback_count = 0u32;
     const INTERVAL: Duration = Duration::from_millis(750);
     loop {
         let mut res = None;
@@ -50,7 +52,39 @@ fn main() {
         let (question, page) = res.unwrap();
 
         question_count += 1;
-        let ans = answerer.answer(&question);
+
+        let mut retry_count = 0u32;
+        let ans = loop {
+            let ans = answerer.answer(&question);
+            if let Some(ans) = ans {
+                break ans;
+            }
+            if retry_count < ctx.answer_retry_limit {
+                retry_count += 1;
+                log::info!(
+                    "Failed to get a valid answer, retrying... ({} / {})",
+                    retry_count,
+                    ctx.answer_retry_limit
+                );
+                continue;
+            }
+            fallback_count += 1;
+            let limit = ctx.answer_fallback_ratio;
+            let ratio = fallback_count as f32 / question_count as f32;
+            assert!(
+                ratio <= limit,
+                "Fallback ratio exceeded: {ratio:.3} > {limit:.3}",
+            );
+            let ans = Answer::random();
+            log::warn!(
+                "Failed to parse answer, use random answer: {}, fallback count: {}/{}({:.3})",
+                ans.to_str(),
+                fallback_count,
+                question_count,
+                ratio
+            );
+            break ans;
+        };
         let choice = page.choice(ans);
         log::info!("{:03}: answer: {:?}, tap screen", question_count, ans);
         adb.tap_random(choice);

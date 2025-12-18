@@ -23,10 +23,6 @@ pub struct Multimodal {
 
     prompt_tokens: u64,
     completion_tokens: u64,
-
-    answer_total_count: u32,
-    answer_fallback_count: u32,
-    answer_fallback_ratio: f32,
 }
 
 impl Multimodal {
@@ -34,21 +30,9 @@ impl Multimodal {
         let url = ctx.api_url.clone();
         let model = ctx.api_model.clone();
         let key = ctx.api_key.clone();
-        Self::new(
-            url,
-            model,
-            key,
-            ctx.answer_fallback_ratio,
-            ctx.answer_thinking,
-        )
+        Self::new(url, model, key, ctx.answer_thinking)
     }
-    pub fn new(
-        url: String,
-        model: String,
-        key: String,
-        fallback_ratio: f32,
-        thinking: bool,
-    ) -> Self {
+    pub fn new(url: String, model: String, key: String, thinking: bool) -> Self {
         let client = Client::new();
         Self {
             url,
@@ -58,13 +42,10 @@ impl Multimodal {
             thinking,
             prompt_tokens: 0,
             completion_tokens: 0,
-            answer_total_count: 0,
-            answer_fallback_count: 0,
-            answer_fallback_ratio: fallback_ratio,
         }
     }
 
-    pub fn answer(&mut self, question: &RgbaImage) -> Answer {
+    pub fn answer(&mut self, question: &RgbaImage) -> Option<Answer> {
         let resp = self.post(&question.convert());
         log::trace!("{}", serde_json::to_string(&resp).unwrap());
         let choices = json_value_as_vec!(json_at!(resp, "choices").unwrap()).unwrap();
@@ -89,23 +70,8 @@ impl Multimodal {
             self.tokens()
         );
 
-        self.answer_total_count += 1;
-        parse_answer(message).unwrap_or_else(|| {
-            self.answer_fallback_count += 1;
-            let limit = self.answer_fallback_ratio;
-            let ratio = self.answer_fallback_count as f32 / self.answer_total_count as f32;
-            assert!(
-                ratio <= limit,
-                "fallback ratio exceeded: {ratio} > {}: {message}",
-                limit
-            );
-            let ans = Answer::random();
-            log::warn!(
-                "failed to parse answer: {message}, use random answer: {}",
-                ans.to_str()
-            );
-            ans
-        })
+        log::debug!("raw answer: {}", message);
+        parse_answer(message)
     }
 
     pub fn input_tokens(&self) -> u64 {

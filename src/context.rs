@@ -24,6 +24,13 @@ pub struct Context {
         env = "BILI_LV6_HARDCORE_ANSWER_FALLBACK_RATIO"
     )]
     pub answer_fallback_ratio: f32,
+    // 遇到无法识别的答案，重试的次数
+    #[arg(
+        long,
+        default_value_t = 1,
+        env = "BILI_LV6_HARDCORE_ANSWER_FALLBACK_RETRY_COUNT"
+    )]
+    pub answer_retry_limit: u32,
 
     // 是否开启模型的思考功能
     #[arg(
