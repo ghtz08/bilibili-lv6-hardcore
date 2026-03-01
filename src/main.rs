@@ -101,12 +101,12 @@ fn main() {
     );
 }
 
-fn wait_question_page(adb: &Adb) -> (RgbaImage, PageQuestion) {
+fn wait_question_page(adb: &Adb) {
     loop {
         log::info!("Waiting for question page...");
-        if let Some(val) = identify_screen(adb, &None) {
+        if identify_screen(adb, &None).is_some() {
             log::info!("Question page detected");
-            return val;
+            return;
         }
         std::thread::sleep(std::time::Duration::from_millis(500));
     }
