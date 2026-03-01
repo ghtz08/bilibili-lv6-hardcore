@@ -174,20 +174,17 @@ fn location_core(
 }
 
 fn nms(rects: &[Rect]) -> Vec<Rect> {
+    const IOU_THRESHOLD: f32 = 0.6;
     let mut res = vec![];
     for src in rects {
-        let mut suppression = false;
-        for target in &res {
-            if src.iou(target) > 0.6 {
-                suppression = true;
-                if src.area() > target.area() {
-                    res.pop();
-                    res.push(*src);
-                }
-                break;
+        if let Some(pos) = res
+            .iter()
+            .position(|target| src.iou(target) > IOU_THRESHOLD)
+        {
+            if src.area() > res[pos].area() {
+                res[pos] = *src;
             }
-        }
-        if !suppression {
+        } else {
             res.push(*src);
         }
     }
