@@ -13,7 +13,6 @@ use crate::{
     context::Context, json_at, json_value_as_i64, json_value_as_str, json_value_as_vec, parse_json,
 };
 
-#[derive(Default)]
 pub struct Multimodal {
     url: String,
     model: String,

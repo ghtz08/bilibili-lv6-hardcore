@@ -46,8 +46,8 @@ impl Logger {
 }
 
 impl log::Log for Logger {
-    fn enabled(&self, _metadata: &log::Metadata) -> bool {
-        false
+    fn enabled(&self, metadata: &log::Metadata) -> bool {
+        metadata.level() <= log::max_level()
     }
 
     fn log(&self, record: &log::Record) {
