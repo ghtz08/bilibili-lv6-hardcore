@@ -159,15 +159,15 @@ fn location_core(
         }
         begin = i;
     }
-    const ALIGIN: usize = 28;
+    const ALIGN: usize = 28;
     let h = bottom_y - top_y;
-    assert!(h > ALIGIN, "height: {}", h);
-    let h = h / ALIGIN * ALIGIN;
-    let mut top_y = top_y + (ALIGIN - 1) / ALIGIN * ALIGIN;
-    let bottom_y = bottom_y + (ALIGIN - 1) / ALIGIN * ALIGIN;
+    assert!(h > ALIGN, "height: {}", h);
+    let h = h / ALIGN * ALIGN;
+    let mut top_y = top_y + (ALIGN - 1) / ALIGN * ALIGN;
+    let bottom_y = bottom_y + (ALIGN - 1) / ALIGN * ALIGN;
 
     if bottom_y - top_y > h {
-        top_y += ALIGIN / 2;
+        top_y += ALIGN / 2;
     }
 
     Rect::at(0, top_y as i32).of_size(img_w as u32, h as u32)
