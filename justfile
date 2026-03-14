@@ -10,13 +10,17 @@ default:
 
 check:
     @cd '{{justfile_directory()}}'
+    cargo check
+
+fix:
+    @cd '{{justfile_directory()}}'
     git stage .
     cargo fmt
     git stage .
     cargo fix --allow-staged
     cargo clippy --fix --allow-dirty
     cargo clippy -- -D warnings
-    cargo check
+    cargo build
 
 build:
     @cd '{{justfile_directory()}}'
