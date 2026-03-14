@@ -2,7 +2,7 @@ use std::{io::Cursor, time::Duration};
 
 use base64::{Engine, prelude::BASE64_STANDARD};
 use image::{ImageFormat, RgbImage, RgbaImage, buffer::ConvertBuffer};
-use rand::Rng;
+use rand::RngExt;
 use reqwest::{
     blocking::Client,
     header::{HeaderMap, HeaderName, HeaderValue},
